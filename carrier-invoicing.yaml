@@ -94,6 +94,7 @@ paths:
     - $ref: '#/components/parameters/X-Mcld-Tenant'
     get:
       summary: Retrieve a Specific Shipment
+      tags: [Shipments]
       description: Retrieves the shipment with the specified ID.
       parameters:
       - name: shipmentId
