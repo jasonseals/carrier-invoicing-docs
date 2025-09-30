@@ -33,8 +33,9 @@ paths:
     - $ref: '#/components/parameters/X-Mcld-Tenant'
     get:
       summary: Retrieve Shipment Details
-      description: Return a list of shipments without embedded documents. Use the detail endpoint or supporting-documents endpoints to retrieve document images.
-      tags: 
+      description: Return a list of shipments without embedded documents. Use the
+        detail endpoint or supporting-documents endpoints to retrieve document images.
+      tags:
       - Shipments
       parameters:
       - name: status
@@ -43,36 +44,38 @@ paths:
         description: Filter by shipment status code (P=in progress, D=delivered).
         schema:
           type: string
-          enum: [P, D]      
-      responses: 
-        '200': 
+          enum:
+          - P
+          - D
+      responses:
+        '200':
           description: OK
-          headers: 
+          headers:
             X-Total-Count:
               $ref: '#/components/headers/Response-X-Total-Count'
-          content: 
+          content:
             application/json:
               schema:
                 type: object
                 properties:
-                  shipments: 
+                  shipments:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ShipmentSummary'  
+                      $ref: '#/components/schemas/ShipmentSummary'
                 required:
                 - shipments
-              example: 
-                shipments: 
+              example:
+                shipments:
                 - shipmentId: SHP-001
                   status: P
-                  totalAmount: 395.00
-                  currency: USD    
-                  dueDate: '2025-09-15'   
+                  totalAmount: 395.0
+                  currency: USD
+                  dueDate: '2025-09-15'
                 - shipmentId: SHP-002
                   status: D
-                  totalAmount: 220.00
-                  currency: USD   
-                  dueDate: '2025-09-10'    
+                  totalAmount: 220.0
+                  currency: USD
+                  dueDate: '2025-09-10'
         '400':
           $ref: '#/components/responses/Standard-400'
         '401':
@@ -94,14 +97,15 @@ paths:
     - $ref: '#/components/parameters/X-Mcld-Tenant'
     get:
       summary: Retrieve a Specific Shipment
-      tags: [Shipments]
+      tags:
+      - Shipments
       description: Retrieves the shipment with the specified ID.
       parameters:
       - name: shipmentId
         in: path
         required: true
         description: The unique identifier of the shipment
-        schema: 
+        schema:
           type: string
         example: Movement-20234
       responses:
@@ -120,50 +124,6 @@ paths:
       security:
       - OAuth:
         - carrieraudit:fullaccess
-    patch:
-      summary: Partially Update a Shipment
-      description: Updates selected fields on an order or movement using JSON Merge Path semantics. To signal the go-ahead for payment, set 'paymentStatus' to 'ReadyForPayment'. The server may populate 'paymentApprovedAt' and 'paymentApprovedBy' when this occurs.
-      tags:
-      - Shipments
-      parameters:
-      - name: shipmentId
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/merge-patch+json:
-            schema: 
-              $ref: '#/components/schemas/ShipmentUpdate'
-            examples:
-              addNotesAndRef: 
-                value: 
-                  referenceNumber: 'PO-9901'  
-                  notes: 'Customer requested split billing'  
-              updateBOL:
-                value:
-                  BOL: 398453
-              updateWeight:
-                value:
-                  weight: 38000        
-      responses:
-        '200':
-          description: OK
-          content: 
-            application/json: 
-              schema: { $ref: '#/components/schemas/Shipment'}
-        '400':
-          $ref: '#/components/responses/Standard-400'
-        '401':
-          $ref: '#/components/responses/Standard-401'
-        '403':
-          $ref: '#/components/responses/Standard-403'
-        '404':
-          $ref: '#/components/responses/Standard-404'
-        '500':
-          $ref: '#/components/responses/Standard-500'
   /shipments/{shipmentId}/supporting-documents:
     post:
       summary: Upload a Supporting Document
@@ -200,7 +160,7 @@ paths:
       responses:
         '200':
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -208,11 +168,26 @@ paths:
                   documents:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Document'
-                required: [documents]      
+                      type: object
+                      required: [id, size]
+                      properties: 
+                        id: 
+                          type: string
+                          description: Identifier of the document (maps to DocumentPower ID).
+                          example: doc123456
+                        index: 
+                          type: string
+                          description: Optional DocumentPower index within cabinet/folder.
+                          example: index123
+                        size:
+                          type: integer
+                          description: File size in bytes.
+                          example: 2048000
+                required:       
+                  - documents    
         '201':
           description: Document submitted.
-          content: 
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Shipment'
@@ -227,8 +202,8 @@ paths:
         '500':
           $ref: '#/components/responses/Standard-500'
       security:
-        - OAuth:
-          - carrieraudit:fullaccess
+      - OAuth:
+        - carrieraudit:fullaccess
     get:
       summary: List Documents for a Shipment
       tags:
@@ -241,7 +216,27 @@ paths:
           type: string
       responses:
         '200':
-          description: OK
+          description: A list of supporting documents for the shipment (empty array if none).
+          content: 
+            application/json:
+              schema:
+                type: array
+                items: 
+                  type: object
+                  required: [id, size]
+                  properties: 
+                    id:
+                      type: string
+                      description: Identifier of the document (maps to DocumentPower ID).
+                      example: doc123456
+                    index:
+                      type: string
+                      description: DocumentPower index within cabinet/folder (if applicable).
+                      example: index123 
+                    size:
+                      type: integer
+                      description: File size in bytes.
+                      example: 2048000          
         '400':
           $ref: '#/components/responses/Standard-400'
         '401':
@@ -258,7 +253,8 @@ paths:
   /shipments/{shipmentId}/supporting-documents/{documentId}:
     get:
       summary: Get a Supporting Document (Metadata)
-      description: Returns JSON metadata about the supporting document. Use the /content subresource to download the appropriate document image.
+      description: Returns JSON metadata about the supporting document. Use the /content
+        subresource to download the appropriate document image.
       tags:
       - Documents
       parameters:
@@ -274,11 +270,19 @@ paths:
           type: string
       responses:
         '200':
-          description: OK
-          content: 
-            application/json: 
-              schema: 
-                $ref: '#/components/schemas/Document'
+          description: Document metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, size]
+                properties: 
+                  id: 
+                    type: string
+                  index:
+                    type: string
+                  size:
+                    type: integer
         '404':
           description: Document not found.
   /shipments/{shipmentId}/supporting-documents/{documentId}/content:
@@ -293,7 +297,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: documentId 
+      - name: documentId
         in: path
         required: true
         schema:
@@ -305,49 +309,110 @@ paths:
         schema:
           type: boolean
           default: false
-      responses: 
-        '200': 
+      responses:
+        '200':
           description: File stream
           headers:
             Content-Disposition:
               $ref: '#/components/headers/Response-Content-Disposition'
             Content-Length:
-              $ref: '#/components/headers/Response-Content-Length'   
-          content: 
+              $ref: '#/components/headers/Response-Content-Length'
+          content:
             application/pdf:
               schema:
                 type: string
                 format: binary
             image/jpeg:
-              schema: 
+              schema:
                 type: string
                 format: binary
             image/png:
-                schema: 
-                  type: string
-                  format: binary
+              schema:
+                type: string
+                format: binary
             application/octet-stream:
-                schema: 
-                  type: string
-                  format: binary
+              schema:
+                type: string
+                format: binary
         '404':
-          $ref: '#/components/responses/Standard-404'  
+          $ref: '#/components/responses/Standard-404'
         '500':
-          $ref: '#/components/responses/Standard-500'                            
-  /events/{eventId}:
+          $ref: '#/components/responses/Standard-500'
+  /shipments/{shipmentId}/update:
+    parameters:
+      - $ref: '#/components/parameters/X-Correlation-Id'
+      - $ref: '#/components/parameters/X-Api-Key'
+      - $ref: '#/components/parameters/Authorization'
+      - $ref: '#/components/parameters/X-Mcld-Tenant'
+    patch:
+      tags: [Shipments] 
+      summary: Update Shipment 
+      description: Updates the BOL, weight, pieces/cases, carrier linehaul pay amount, and accessorial pay amount for a shipment. All other fields are ignored.
+      security:
+      - OAuth:
+        - carrieraudit:fullaccess
+      parameters:
+        - name: shipmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentUpdateLimited'     
+      responses:
+        '200':
+          description: Shipment updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+        '400': {$ref: '#/components/responses/Standard-400'}    
+        '401': {$ref: '#/components/responses/Standard-401'}
+        '403': {$ref: '#/components/responses/Standard-403'} 
+        '404': {$ref: '#/components/responses/Standard-404'} 
+        '500': {$ref: '#/components/responses/Standard-500'}  
+  /events:
     get:
-      summary: Get Event by ID
+      summary: List Events
+      description: Returns a list of carrier audit events.
       tags:
       - Events
       parameters:
-      - name: eventId
-        in: path
-        required: true
+      - name: startDate
+        in: query
+        required: false
+        description: Filter events created on or after this date (YYYY-MM-DD).
         schema:
           type: string
+          format: date
+      - name: endDate
+        in: query
+        required: false
+        description: Filter events created on or before this date (YYYY-MM-DD).
+        schema: 
+          type: string
+          format: date
+      - name: type
+        in: query
+        required: false
+        description: Filter by event type.
+        schema:
+          type: string       
       responses:
         '200':
-          description: OK
+          description: A list of events.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  items: 
+                    type: array
+                    items: { $ref: '#/components/schemas/Event'}
         '400':
           $ref: '#/components/responses/Standard-400'
         '401':
@@ -376,7 +441,7 @@ paths:
                   example: approvePayment
                 parameters:
                   type: object
-                  enum: 
+                  enum:
                   - VERIFY
                   additionalProperties: true
                   example:
@@ -396,83 +461,78 @@ paths:
         '500':
           $ref: '#/components/responses/Standard-500'
   /event-subscriptions:
-    get: 
-      summary: List Event subscriptions
-      description: Returns event subscriptions for the authenticated tenant. Use the 'event' filter to narrow by event type.
-      tags: 
+    get:
+      summary: List Event Subscriptions
+      description: Returns event subscriptions for the authenticated tenant. Use the
+        'event' filter to narrow by event type.
+      tags:
       - Events
       parameters:
-      - name: event
-        in: query
-        required: false
-        description: Filter by event type.
-        schema:
-          $ref: '#/components/schemas/InvoiceEventType'
-      - name: page
-        in: query
-        required: false
-        description: Page number.
-        schema: 
-          type: integer
-          minimum: 1
-          default: 1
-      - name: pageSize
-        in: query
-        required: false
-        description: Page size.
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 200
-          default: 50
+        - $ref: '#/components/parameters/X-Correlation-Id'
+        - $ref: '#/components/parameters/X-Api-Key'
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/X-Mcld-Tenant'
+        - name: startingEvent
+          in: query
+          required: false
+          description: The event ID from which to start. Return subscriptions created at or after this event.     
+          schema:
+            type: string
       responses:
         '200':
-          description: OK
-          headers:
-            X-Total-Count:
-              $ref: '#/components/headers/Response-X-Total-Count'
-          content: 
+          description: A list of event subscriptions.
+          content:
             application/json:
               schema:
-                type: object
-                properties: 
-                  subscriptions:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/EventSubscription'   
-                required: 
-                - subscriptions
-              example: 
-                subscriptions:
-                - subscriptionId: 'S-001'       
-                  event: paymentApproved
-                  callbackUrl: "https://webhook.example.com/payments/ready_to_audit"  
-                  createdAt: "2025-09-10T11:0128Z"    
-                  isActive: false
-        '400': { $ref: '#/components/responses/Standard-400'}  
-        '401': { $ref: '#/components/responses/Standard-401'}
-        '403': { $ref: '#/components/responses/Standard-403'}
-        '500': { $ref: '#/components/responses/Standard-500'}  
+                type: array
+                items: 
+                  $ref: '#/components/schemas/EventSubscription'
+        '400':  
+          $ref: '#/components/responses/Standard-400'
+        '401':
+          $ref: '#/components/responses/Standard-401'
+        '403':
+          $ref: '#/components/responses/Standard-403'
+        '500':
+          $ref: '#/components/responses/Standard-500'
     post:
       summary: Subscribe to Shipment Events
       description: Creates a subscription to receive notifications when specific shipment
         events occur.
       tags:
       - Events
+      parameters:
+        - $ref: '#/components/parameters/X-Correlation-Id'
+        - $ref: '#/components/parameters/X-Api-Key'
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/X-Mcld-Tenant'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EventSubscription'
-            example:
-              event: paymentApproved
-              type: WebHook
-              url: https://client.example.com/hooks/shipments
-              httpVerb: POST
+              $ref: '#/components/schemas/EventSubscriptionCreate'
+            examples:
+              example:
+                value:
+                  event: paymentApproved
+                  type: WebHook
+                  url: https://client.example.com/hooks/shipments
+                  httpVerb: POST
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Subscription created.
+          headers:
+            Location:
+              description: URL of the newly created subscription.
+              schema:
+                type: string
+                format: url 
+                example: https://api.mcleodsoftware.com/carrieraudit/event-subscriptions/SUB-9f2c7a
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventSubscription'  
         '400':
           $ref: '#/components/responses/Standard-400'
         '401':
@@ -485,12 +545,12 @@ paths:
           $ref: '#/components/responses/Standard-500'
   /event-subscriptions/{subscriptionId}:
     parameters:
-      - name: subscriptionId
-        in: path
-        required: true
-        description: ID of the subscription.
-        schema:
-          type: string
+    - name: subscriptionId
+      in: path
+      required: true
+      description: ID of the subscription.
+      schema:
+        type: string
     delete:
       summary: Unsubscribe from events
       description: Deletes an existing event subscription.
@@ -517,43 +577,155 @@ paths:
         '500':
           $ref: '#/components/responses/Standard-500'
     get:
-      summary: Retrieve eligible movements for invoicing
-      description: Returns a list of movements (completed deliveries) that are eligible
-        for invoice creation. Optionally supports filtering by date range, carrier ID,
-        invoice status, and other parameters.
+      summary: Retrieve an Event Subscription
+      description: Returns the event subscription identified by 'subscriptionId'.
       tags:
-      - Movements
+      - Events
       parameters:
-      - name: startDate
-        in: query
-        description: Filter movements with a delivery date on or after this date (YYYY-MM-DD)
-        required: false
+      - name: subscriptionId
+        in: path
+        description: The ID of the subscription to retrieve.
+        required: true 
         schema:
           type: string
-          format: date
-      - name: endDate
-        in: query
-        description: Filter movements with a delivery date on or before this date (YYYY-MM-DD)
-        required: false
-        schema: 
-          type: string
-          format: date
-      - name: carrierId
-        in: query
-        description: Filter by carrier ID
-        required: false
-        schema:
-          type: string
-      - name: page
-        in: query
-        description: Pagination - results per page
-        required: false
-        schema:
-          type: integer
-          default: 25
       responses:
         '200':
           description: OK
+        '400':
+          $ref: '#/components/responses/Standard-400'
+        '401':
+          $ref: '#/components/responses/Standard-401'
+        '403':
+          $ref: '#/components/responses/Standard-403'
+        '404':
+          $ref: '#/components/responses/Standard-404'
+        '500':
+          $ref: '#/components/responses/Standard-500'
+  /shipments/{shipmentId}/carrier-pay:
+    parameters:
+    - $ref: '#/components/parameters/X-Correlation-Id'
+    - $ref: '#/components/parameters/X-Api-Key'
+    - $ref: '#/components/parameters/Authorization'
+    - $ref: '#/components/parameters/X-Mcld-Tenant'
+    patch:
+      summary: Update Carrier Pay
+      description: Updates the carrier pay summary for the shipment.
+      tags:
+      - Shipments
+      security:
+      - OAuth:
+        - carrieraudit:fullaccess
+      parameters:
+      - name: shipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/CarrierPayUpdate'
+      responses:
+        '200':
+          description: Carrier pay updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+        '400':
+          $ref: '#/components/responses/Standard-400'
+        '401':
+          $ref: '#/components/responses/Standard-401'
+        '403':
+          $ref: '#/components/responses/Standard-403'
+        '404':
+          $ref: '#/components/responses/Standard-404'
+        '500':
+          $ref: '#/components/responses/Standard-500'
+  /shipments/{shipmentId}/carrier-other-pay:
+    parameters:
+    - $ref: '#/components/parameters/X-Correlation-Id'
+    - $ref: '#/components/parameters/X-Api-Key'
+    - $ref: '#/components/parameters/Authorization'
+    - $ref: '#/components/parameters/X-Mcld-Tenant'
+    patch:
+      summary: Update Carrier Other Pay
+      description: Updates the carrier other pay summary for the shipment.
+      tags:
+      - Shipments
+      security:
+      - OAuth:
+        - carrieraudit:fullaccess
+      parameters:
+      - name: shipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/CarrierOtherPayUpdate'
+      responses:
+        '200':
+          description: Carrier other pay updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+        '400':
+          $ref: '#/components/responses/Standard-400'
+        '401':
+          $ref: '#/components/responses/Standard-401'
+        '403':
+          $ref: '#/components/responses/Standard-403'
+        '404':
+          $ref: '#/components/responses/Standard-404'
+        '500':
+          $ref: '#/components/responses/Standard-500'
+  /shipments/{shipmentId}/accessorials:
+    parameters:
+    - $ref: '#/components/parameters/X-Correlation-Id'
+    - $ref: '#/components/parameters/X-Api-Key'
+    - $ref: '#/components/parameters/Authorization'
+    - $ref: '#/components/parameters/X-Mcld-Tenant'
+    post:
+      summary: Create Carrier Accessorial
+      description: Creates a new accessorial charge on the specified shipment.
+      tags:
+      - Shipments
+      security:
+      - OAuth:
+        - carrieraudit:fullaccess
+      parameters:
+      - name: shipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessorialCreate'
+      responses:
+        '201':
+          description: Accessorial created.
+          headers:
+            Location:
+              description: URL of the newly created accessorial resource.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
         '400':
           $ref: '#/components/responses/Standard-400'
         '401':
@@ -614,54 +786,54 @@ components:
       name: X-Api-Key
       in: header
     OAuth:
-        type: oauth2
-        flows:
-          authorizationCode:
-            authorizationUrl: https://example.com/auth
-            tokenUrl: https://auth.example.com/oauth/token
-            scopes:
-              carrieraudit:fullaccess: Full access to Carrier Invoicing API
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/auth
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            carrieraudit:fullaccess: Full access to Carrier Invoicing API
   responses:
     Invoice-200:
       description: Invoice details.
-      content: 
-        application/json: 
-          schema: 
+      content:
+        application/json:
+          schema:
             $ref: '#/components/schemas/Invoice'
     Shipment-200:
       description: Shipment details.
-      content: 
-        application/json: 
+      content:
+        application/json:
           schema:
-            $ref: "#/components/schemas/Shipment"       
+            $ref: '#/components/schemas/Shipment'
     '200':
       description: OK
-      headers: 
+      headers:
         X-Total-Count:
           $ref: '#/components/headers/Response-X-Total-Count'
-      content: 
+      content:
         application/json:
           schema:
             type: object
             properties:
               invoices:
                 type: array
-                items: 
-                  $ref: '#/components/schemas/ShipmentSummary' 
-            required: 
+                items:
+                  $ref: '#/components/schemas/ShipmentSummary'
+            required:
             - shipments
           example:
             shipments:
-            - orderId: 9328423 
+            - orderId: 9328423
             - movementId: 2342342
-              moveStatus: Delivered 
-              totalAmount: 395.00
+              moveStatus: Delivered
+              totalAmount: 395.0
               currency: USD
             - movementId: 2342342
             - orderId: 9328423
               moveStatus: In Progress
-              totalAmount: 220.00
-              currency: USD       
+              totalAmount: 220.0
+              currency: USD
     Standard-400:
       description: '### Bad Request - The request is invalid or missing required data.'
       content:
@@ -768,7 +940,7 @@ components:
         type: integer
       example: 1234
       description: Total number of shipments matching the current filter.
-      required: false 
+      required: false
     Response-X-Mcld-Subject:
       schema:
         type: string
@@ -779,14 +951,14 @@ components:
       description: Controls inline vs. attachment and suggested filename.
       schema:
         type: string
-      example: attachment; filename="delivery_receipt_123.pdf"  
+      example: attachment; filename="delivery_receipt_123.pdf"
       required: false
     Response-Content-Length:
       description: Size of response in bytes.
       schema:
         type: integer
-      example: 582122   
-      required: false 
+      example: 582122
+      required: false
   schemas:
     Location:
       type: object
@@ -845,88 +1017,39 @@ components:
       - city
       - state
       - postalCode
-    Document:
-      type: object
-      description: Universal document metadata shared by Carrier Invoicing and DocumentPower APIs. 
-      properties:
-        documentId:
-          type: string
-          description: Unique identifier for the document within the owning system.
-          example: DOC1
-        externalId: 
-          type: string
-          description: Optional upstream/system-of-record identifier (e.g., DocumentPower ID if Carrier Invoicing owns 'documentId.')  
-          example: 8e1c6f28-2a1b-4a35-9a4b-8b1fcb0d8b2f
-        documentType:
-          $ref: '#/components/schemas/DocumentType'
-        fileName:
-          type: string
-          description: The name of the uploaded file.
-          example: delivery_receipt_123.pdf
-        mimeType: 
-          type: string
-          example: application.pdf
-        sizeBytes: 
-          type: integer
-          description: File size in bytes.
-          example: 582133
-        sha256:
-          type: string
-          description: Optional content hash for integrity checks.
-          example: 3b7f3c1f4a8c2b6e8d5a1c4e7b2f9d0e3a6c1d4e5f7a8b9c0d1e2f3a4b5c6d7e
-        uploadedAt: 
-          type: string
-          format: date-time
-          example: '2025-08-29T14:32:11Z'
-        sourceSystem: 
-          type: string
-          description: Origin system name (e.g., CarrierInvoicing, DocumentPower, UserUpload).
-          example: CarrierInvoicing
-        status:
-          $ref: '#/components/schemas/DocumentStatus'       
-        url:
-          type: string
-          description: Optional signed/CDN URL. Canonical binary route is the '/content' endpoint. 
-          example: https://cdn.example.com/documents/DOC-12345?sig=abc
-        tags:
-          type: array
-          items:
-            type: string
-          description: Free-form labels for search/organization.
-        metadata:
-          type: object
-          additionalProperties: true
-          description: Free-form key/value pairs for workflow- or vendor-specific attributes.  
-      required:
-      - documentId
-      - documentType
-      - fileName
-      - mimeType
-      - uploadedAt
-      - status
     DocumentType:
       type: string
       description: Category/classification of the document.
-      enum: [BOL, POD, InvoiceImage, RateCon, Other]
+      enum:
+      - BOL
+      - POD
+      - InvoiceImage
+      - RateCon
+      - Other
       example: POD
     DocumentStatus:
       type: string
       description: Availability state of the document in storage/processing.
-      enum: [Available, Processing, Failed, Deleted]  
-      example: Available 
+      enum:
+      - Available
+      - Processing
+      - Failed
+      - Deleted
+      example: Available
     InvoiceEventType:
       type: string
       description: Allowed invoice event types.
-      enum: 
+      enum:
       - NewOrder
       - MovementDelivered
       - CarrierPaymentRecordAdded
       - CarrierPaymentRecordUpdated
-    InvoiceUpdate: 
+    InvoiceUpdate:
       type: object
-      description: The fields that are allowed for partial updates to an carrier payment record (JSON Merge Patch).
+      description: The fields that are allowed for partial updates to an carrier payment
+        record (JSON Merge Patch).
       properties:
-        status: 
+        status:
           type: string
           description: Open, Approved, Paid, Disputed, or Canceled.
           enum:
@@ -953,8 +1076,8 @@ components:
           additionalProperties: true
           description: Optional key/value extensions.
         paymentStatus:
-          $ref: '#/components/schemas/PaymentStatus'  
-      additionalProperties: false           
+          $ref: '#/components/schemas/PaymentStatus'
+      additionalProperties: false
     InvoiceSummary:
       type: object
       description: Invoice for list views (no embedded documents).
@@ -964,12 +1087,14 @@ components:
         status:
           type: string
           description: Shipment status code (P=in progress, D=delivered)
-          enum: [P, D]
+          enum:
+          - P
+          - D
           example: P
         totalAmount:
           type: number
           format: float
-        currency: 
+        currency:
           type: string
           example: USD
         dueDate:
@@ -979,25 +1104,25 @@ components:
       - shipmentId
       - status
       - totalAmount
-      - currency                    
+      - currency
     Payment:
       type: object
       description: A recorded payment applied to a shipment.
-      properties: 
-        paymentId: 
+      properties:
+        paymentId:
           type: string
           description: Unique identifier for the payment.
           example: PMT-001
-        shipmentId: 
+        shipmentId:
           type: string
           description: ID of the shipment to which the payment is applied.
           example: INV-001
-        amount: 
+        amount:
           type: number
           format: float
           minimum: 0
           description: Amount applied.
-          example: 395.00
+          example: 395.0
         currency:
           type: string
           description: ISO currency code.
@@ -1005,27 +1130,28 @@ components:
         paymentDate:
           type: string
           format: date
-          description: The date the payment was made (YYYY-MM-DD)  
+          description: The date the payment was made (YYYY-MM-DD)
           example: 2025-08-15
         method:
           type: string
-          description: Payment method (e.g., ACH, Check, Wire, Card)  
+          description: Payment method (e.g., ACH, Check, Wire, Card)
           example: ACH
         referenceNumber:
           type: string
-          description: External reference number, such as check number or transaction ID.
-          example: 'REF-8832901' 
+          description: External reference number, such as check number or transaction
+            ID.
+          example: REF-8832901
         notes:
           type: string
           description: Free-form notes about this payment.
-        createdAt: 
+        createdAt:
           type: string
           format: date-time
           description: Timestamp when the payment was created.
-          example: 2025-08-20T10:22:03Z
-      required:      
+          example: 2025-08-20 10:22:03+00:00
+      required:
       - paymentId
-      - invoiceId
+      - shipmentId
       - amount
       - currency
       - paymentDate
@@ -1038,7 +1164,7 @@ components:
       - ReadyForPayment
       - Paid
       - Rejected
-      example: Paid    
+      example: Paid
     Event:
       type: object
       description: An event related to an invoice, such as approval, payment, or dispute.
@@ -1068,7 +1194,7 @@ components:
       - eventId
       - invoiceId
       - eventType
-      - occurredAt 
+      - occurredAt
     Charge:
       type: object
       description: The accessorial charge included on the shipment.
@@ -1096,7 +1222,7 @@ components:
         payableTo:
           type: string
           description: Carrier ID of the "other pay" entity responsible for this charge.
-          example: TESTBIAL  
+          example: TESTBIAL
         createdDate:
           type: string
           format: date-time
@@ -1108,6 +1234,26 @@ components:
       - amount
       - currency
       - chargeType
+    WebHookDetails:
+      type: object
+      required: [url, httpVerb]
+      properties:
+        url: 
+          type: string
+          format: url
+          description: Destination URL for webhook calls.
+        httpVerb:
+          type: string
+          description: HTTP method used to invoke the subscriber endpoint.
+          enum: [POST, PUT]  
+        headers:
+          type: object
+          additionalProperties: 
+            type: string
+          description: Optional static headers included with each call.
+        secret:
+          type: string
+          description: Optional signing secret used for HMAC verification.      
     Invoice:
       type: object
       description: A carrier invoice submitted for one or more orders.
@@ -1132,7 +1278,9 @@ components:
         status:
           type: string
           description: Shipment status code (P=in progress, D=delivered)
-          enum: [P, D]
+          enum:
+          - P
+          - D
           example: P
         totalAmount:
           type: number
@@ -1160,16 +1308,30 @@ components:
           type: array
           description: List of supporting documents included with the shipment.
           items:
-            $ref: '#/components/schemas/Document'
+            type: object
+            required: [id, size]
+            properties:
+              id: 
+                type: string
+                description: Identifier of the document (maps to DocumentPower ID).
+                example: doc123456
+              index:
+                type: string
+                description: Optional DocumentPower index within cabinet/folder.
+                example: index123
+              size:
+                type: integer
+                description: File size in bytes.
+                example: 2048000    
         paymentStatus:
-          $ref: '#/components/schemas/PaymentStatus'  
+          $ref: '#/components/schemas/PaymentStatus'
         paymentApprovedAt:
           type: string
           format: date-time
           description: Timestamp when the invoice was set to ReadyForPayment.
         paymentApprovedBy:
           type: string
-          description: User or process that approved the payment.    
+          description: User or process that approved the payment.
       required:
       - id
       - carrierId
@@ -1180,76 +1342,104 @@ components:
       - currency
     Shipment:
       allOf:
-        - $ref: "#/components/schemas/Invoice"
-        - type: object
-          description: Shipment detail with order, stop, carrier, and accessorial information.
-          properties:
-            orders:
-              type: array
-              items:
-                $ref: "#/components/schemas/Order"
-            stops:
-              type: array
-              items: 
-                $ref: "#/components/schemas/Stop" 
-            dispatcher:
-              $ref: "#/components/schemas/Contact"
-            operationsUser:
-              $ref: "#/components/schemas/Contact"   
-            manifestNumber:
-              type: string
-              description: Manifest number for the shipment. 
-            accessorials:
-              type: array
-              description: Accessorials filtered to those whose payee matches the shipment's payee (server-side filtering per business rule).
-              items: 
-                $ref: "#/components/schemas/Accessorial"
-            carrier: 
-              $ref: "#/components/schemas/Carrier"          
+      - $ref: '#/components/schemas/Invoice'
+      - type: object
+        description: Shipment detail with order, stop, carrier, and accessorial information.
+        properties:
+          orders:
+            type: array
+            items:
+              $ref: '#/components/schemas/Order'
+          stops:
+            type: array
+            items:
+              $ref: '#/components/schemas/Stop'
+          dispatcher:
+            $ref: '#/components/schemas/Contact'
+          operationsUser:
+            $ref: '#/components/schemas/Contact'
+          manifestNumber:
+            type: string
+            description: Manifest number for the shipment.
+          accessorials:
+            type: array
+            description: Accessorials filtered to those whose payee matches the shipment's
+              payee (server-side filtering per business rule).
+            items:
+              $ref: '#/components/schemas/Accessorial'
+          carrier:
+            $ref: '#/components/schemas/Carrier'
     ShipmentUpdate:
-      allOf: 
-        - $ref: "#/components/schemas/InvoiceUpdate"
+      allOf:
+      - $ref: '#/components/schemas/InvoiceUpdate'
+    ShipmentUpdateLimited:
+      type: object
+      description: Request body for updating a shipment's key fields. Only the specified fields are updatable. All others will be ignored.
+      properties:
+        bol:
+          type: string
+          description: Bill of Lading number
+        weight: 
+          type: number
+          format: float
+          minimum: 0
+          description: Total weight of the shipment.
+        pieces:
+          type: integer
+          minimum: 0
+          description: Number of pieces/cases.
+        payAmount:
+          type: number
+          format: float
+          minimum: 0
+          description: Carrier linehaul pay amount.
+        accessorialPayAmount:
+          type: number
+          format: float
+          minimum: 0
+          description: Aggregated accessorial/'other pay' amount.
+      additionalProperties: false       
     ShipmentSummary:
       allOf:
-        - $ref: "#/components/schemas/InvoiceSummary"
+      - $ref: '#/components/schemas/InvoiceSummary'
     Contact:
       type: object
       properties:
         name:
           type: string
           example: John Doe
-        email: 
+        email:
           type: string
           format: email
           example: John.Doe@McLeodSoftware.com
     Order:
       type: object
       properties:
-        id: 
+        id:
           type: string
           description: Order number
         bolNumber:
           type: string
-          description: Bill of Lading (BOL) number    
+          description: Bill of Lading (BOL) number
         consigneeReferenceNumber:
           type: string
           description: Consignee reference number
-        weight: 
+        weight:
           type: number
           format: float
-          description: Weight of the order (pounds unless otherwise noted)   
+          description: Weight of the order (pounds unless otherwise noted)
           example: 44000
-        cases: 
+        cases:
           type: integer
-          description: Number of cases (if applicable)    
+          description: Number of cases (if applicable)
           example: 50
         pieces:
           type: integer
-          description: Number of pieces (if applicable) 
-          example: 500     
+          description: Number of pieces (if applicable)
+          example: 500
     Stop:
       type: object
-      properties: 
+      properties:
         id:
           type: string
           description: Stop number
@@ -1258,44 +1448,44 @@ components:
           example: Acme Distribution Carrier
         city:
           type: string
-          example: Birmingham  
+          example: Birmingham
         state:
           type: string
-          example: AL 
+          example: AL
         postalCode:
           type: string
           example: 35020
-        actualArrivalAt: 
+        actualArrivalAt:
           type: string
           format: date-time
           description: Actual arrival timestamp (UTC)
-          example: "2025-09-19T14:30:00Z"
+          example: '2025-09-19T14:30:00Z'
         actualDepartureAt:
           type: string
           format: date-time
-          description: Actual departure timestamp (UTC)  
-          example: "2025-09-19T16:05:00Z"    
+          description: Actual departure timestamp (UTC)
+          example: '2025-09-19T16:05:00Z'
     Accessorial:
       type: object
       description: Accessorial charge applicable to this shipment.
       properties:
-        id: 
+        id:
           type: string
           description: Accessorial code.
-        description: 
+        description:
           type: string
           example: Layover charge
-        amount: 
+        amount:
           type: number
           format: float
-          example: 150.00
+          example: 150.0
     Carrier:
       type: object
       description: The carrier assigned to the shipment.
       properties:
-        id: 
+        id:
           type: string
-        name: 
+        name:
           type: string
         mcNumber:
           type: string
@@ -1309,11 +1499,7 @@ components:
         driverEmail:
           type: string
           format: email
-          description: Driver email (if available)     
-
-    
-    
-    
+          description: Driver email (if available)
     EventSubscription:
       type: object
       description: A client subscription to be notified when specific invoice events
@@ -1323,38 +1509,66 @@ components:
           type: string
           description: Unique ID of the subscription (assigned by the server).
           example: SUB-9f2c7a
+          readOnly: true
         event:
-          $ref: '#/components/schemas/InvoiceEventType'
+          type: string
           description: Event name to subscribe to (e.g., invoiceApproved, invoicePaid,
             invoiceDisputed).
           example: invoiceApproved
+          readOnly: true
         type:
           type: string
           description: Delivery type for the subscription.
+          enum: [WebHook]
           example: WebHook
-        url:
-          type: string
-          format: uri
-          description: Destination URL for webhook calls.
-          example: https://client.example.com/hooks/invoices
-        httpVerb:
-          type: string
-          description: HTTP method used to invoke the subscriber endpoint.
-          example: POST
+          readOnly: true 
+        webhook:
+          $ref: '#/components/schemas/WebHookDetails'
+          readonly: true 
         createdAt:
           type: string
           format: date-time
           description: Timestamp when the subscription was created.
           example: '2025-08-11T14:22:05Z'
+          readOnly: true 
         expiresAt:
           type: string
           format: date-time
+          nullable: true
           description: Optional expiration timestamp for the subscription.
+          readOnly: true 
+      required:
+      - event
+      - subscriptionId
+      - type
+      - webhook
+      - createdAt
+    EventSubscriptionCreate: 
+      type: object
+      description: Payload to create a new event subscription.
+      properties:
+        event:
+          type: string
+          description: Event to subscribe to (e.g., invoiceApproved, invoicePaid,
+            invoiceDisputed).
+        type: 
+          type: string
+          description: Delivery type for the subscription.
+          enum: [WebHook]  
+        webhook:
+          $ref: '#/components/schemas/WebHookDetails'  
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Optional expiration timestamp for the subscription.
+      additionalProperties: false        
       required:
       - event
       - type
-      - url
-      - httpVerb
+      - webhook
+
+
     Error:
       type: object
       description: Standard error payload for 4xx/5xx responses.
@@ -1378,3 +1592,67 @@ components:
       required:
       - code
       - message
+    CarrierPayUpdate:
+      type: object
+      description: Fields allowed when updating the carrier payment summary for a
+        shipment (JSON Merge Patch).
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          description: Total carrier pay amount for this shipment (excluding 'other
+            pay' items).
+          example: 1200.0
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+          example: USD
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        dueDate:
+          type: string
+          format: date
+          description: Due date for the carrier pay.
+        referenceNumber:
+          type: string
+          description: External reference (PO, invoice no., etc.).
+        notes:
+          type: string
+          description: Free-form notes.
+        customFields:
+          type: object
+          additionalProperties: true
+          description: Optional key/value extensions.
+      additionalProperties: false
+    CarrierOtherPayUpdate:
+      type: object
+      description: Fields allowed when updating non-linehaul 'other pay' totals for
+        a shipment (JSON Merge Patch).
+      properties:
+        otherPayAmount:
+          type: number
+          format: float
+          minimum: 0
+          description: Aggregated non-linehaul carrier pay not captured as accessorial
+            items.
+          example: 175.5
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+          example: USD
+        notes:
+          type: string
+          description: Free-form notes about other pay.
+        customFields:
+          type: object
+          additionalProperties: true
+          description: Optional key/value extensions.
+      additionalProperties: false
+    AccessorialCreate:
+      allOf:
+      - $ref: '#/components/schemas/Accessorial'
+      description: Payload for creating a new carrier accessorial on a shipment.
+      required:
+      - id
+      - amount
