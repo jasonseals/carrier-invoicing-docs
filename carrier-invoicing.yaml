@@ -713,6 +713,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AccessorialCreate'
+            examples:
+              example:
+                value:
+                  id: LAYOVER
+                  description: Layover charge
+                  units: 1
+                  rate: 10.00  
       responses:
         '201':
           description: Accessorial created.
@@ -1474,11 +1481,22 @@ components:
           description: Accessorial code.
         description:
           type: string
-          example: Layover charge
         amount:
           type: number
           format: float
-          example: 150.0
+          readOnly: true
+          description: Computed by the server as units x rate.
+        units:
+          type: number
+          format: float   
+        rate:
+          type: number
+          format: float
+      required:
+      - id
+      - units
+      - rate
+      - amount
     Carrier:
       type: object
       description: The carrier assigned to the shipment.
@@ -1604,10 +1622,6 @@ components:
           description: Total carrier pay amount for this shipment (excluding 'other
             pay' items).
           example: 1200.0
-        currency:
-          type: string
-          description: ISO 4217 currency code.
-          example: USD
         paymentStatus:
           $ref: '#/components/schemas/PaymentStatus'
         dueDate:
@@ -1637,10 +1651,6 @@ components:
           description: Aggregated non-linehaul carrier pay not captured as accessorial
             items.
           example: 175.5
-        currency:
-          type: string
-          description: ISO 4217 currency code.
-          example: USD
         notes:
           type: string
           description: Free-form notes about other pay.
@@ -1650,9 +1660,27 @@ components:
           description: Optional key/value extensions.
       additionalProperties: false
     AccessorialCreate:
-      allOf:
-      - $ref: '#/components/schemas/Accessorial'
+      type: object
       description: Payload for creating a new carrier accessorial on a shipment.
+      properties: 
+        id: 
+          type: string
+          description: Accessorial code.
+        description:
+          type: string
+          description: Optional description.
+        units: 
+          type: number
+          format: float
+          minimum: 0
+          description: Quantity used to calculate amount.
+        rate:
+          type: number
+          format: float
+          minimum: 0
+          description: Rate per unit (amount is computed as units x rate).
+      additionalProperties: false       
       required:
       - id
-      - amount
+      - units
+      - rate 
