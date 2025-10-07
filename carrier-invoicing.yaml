@@ -15,9 +15,9 @@ info:
   license:
     name: McLeod Software
     url: https://mcleodsoftware.com
-  externalDocs:
-    description: Business-level summary and overview of the Carrier Invoicing API.
-    url: https://github.com/jasonseals/carrier-invoicing-docs/blob/main/Carrier%20Invoicing%20API%20Document.pdf
+externalDocs:
+  description: Business-level summary and overview of the Carrier Invoicing API.
+  url: https://github.com/jasonseals/carrier-invoicing-docs/blob/main/Carrier%20Invoicing%20API%20Document.pdf
 security:
 - APIKeyAuth: []
 - OAuth:
